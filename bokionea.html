@@ -1,0 +1,81 @@
+<!DOCTYPE html><html><head><meta charset="UTF-8">
+<title>４択ミリオネア</title>
+<style>
+body{margin:0;color:white;font-family:sans-serif;background:url("background.jpg") no-repeat center center fixed;background-size:cover;text-align:center;}
+.panel{background:rgba(0,0,0,0.75);padding:20px;margin:20px;border-radius:15px;}
+button{width:240px;height:80px;font-size:20px;margin:10px;border:none;border-radius:10px;font-weight:bold;cursor:pointer;}
+.ladder{width:260px;background:rgba(0,0,0,0.75);padding:10px;border-radius:12px;max-height:70vh;overflow:auto;}
+.ladder-item{padding:6px;margin:4px;border-radius:6px;font-weight:bold;}
+.current{background:orange;color:black;}
+.cleared{opacity:0.5;}
+.submitScreen{background:white;color:black;padding:30px;width:600px;margin:80px auto;border-radius:20px;}
+</style></head><body>
+<div class="panel" id="startScreen">
+<h2>クラス <input id="class"></h2>
+<h2>番号 <input id="num"></h2>
+<h2>氏名 <input id="name"></h2>
+<button onclick="start()">ゲーム開始</button>
+</div>
+<div id="gameArea"></div>
+<script>
+const questions=[{"question":"１年以内に現金化される資産は？","correct":"流動資産","wrong":["固定資産","固定負債","流動負債"]},{"question":"１年以上使用される資産は？","correct":"固定資産","wrong":["流動資産","固定負債","流動負債"]},{"question":"１年以内に支払う負債は？","correct":"流動負債","wrong":["流動資産","固定負債","固定資産"]},{"question":"長期にわたる負債は？","correct":"固定負債","wrong":["流動資産","流動負債","固定資産"]},{"question":"営業活動の循環過程の中に入る資産を流動資産とする基準は？","correct":"正常営業循環基準","wrong":["ワン・イヤールール","会計基準","一般原則"]},{"question":"１年以内に現金化される資産を流動資産とする基準は？","correct":"ワン・イヤー・ルール","wrong":["正常営業循環基準","会計基準","一般原則"]},{"question":"作成した小切手を渡していないことを何という？","correct":"未渡小切手","wrong":["未取付小切手","未取立小切手","送金小切手"]},{"question":"手形の所持人が銀行に支払いを呈示していない場合を何という？","correct":"未取付小切手","wrong":["未渡小切手","未取立小切手","送金小切手"]},{"question":"営業時間外に現金を預け入れたときは？","correct":"仕訳なし","wrong":["逆仕訳","仕訳する","訂正仕訳"]},{"question":"未記帳だった場合は？","correct":"仕訳する","wrong":["仕訳なし","逆仕訳","訂正仕訳"]},{"question":"未渡小切手があった場合は？","correct":"逆仕訳","wrong":["仕訳する","訂正仕訳","仕訳なし"]}];
+function generatePrizeLadder(n,max=10000000,min=1000){
+if(n<=1)return [max];
+const r=Math.pow(max/min,1/(n-1));
+const arr=[];
+for(let i=0;i<n;i++){
+let val=Math.round((min*Math.pow(r,i))/1000)*1000;
+if(i>0&&val<=arr[i-1])val=arr[i-1]+1000;
+arr.push(val);}
+arr[n-1]=max;return arr;}
+const prize=generatePrizeLadder(questions.length);
+let q=0,currentPrize=0;let className="",numberName="",studentName="";
+function start(){
+className=document.getElementById("class").value;
+numberName=document.getElementById("num").value;
+studentName=document.getElementById("name").value;
+document.getElementById("startScreen").style.display="none";
+document.getElementById("gameArea").innerHTML=`
+<div style="display:flex;gap:20px;justify-content:center;">
+<div class="panel" style="flex:1;">
+<h2 id="info"></h2>
+<h1 id="question"></h1>
+<div id="buttons"></div>
+<h2 id="result"></h2>
+<h2 id="money">現在の賞金：¥0</h2>
+</div>
+<div class="ladder"><h3>賞金ラダー</h3><div id="ladder"></div></div>
+</div>`;
+showQuestion();}
+function renderLadder(){
+let html="";
+for(let i=prize.length-1;i>=0;i--){
+let cls="ladder-item";
+if(i===q)cls+=" current";
+if(i<q)cls+=" cleared";
+html+=`<div class="${cls}">Q${i+1} ¥${prize[i].toLocaleString()}</div>`;}
+document.getElementById("ladder").innerHTML=html;}
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+function showQuestion(){
+if(q>=questions.length){finish();return;}
+document.getElementById("info").innerText="クラス："+className+" 番号："+numberName+" 氏名："+studentName;
+document.getElementById("question").innerText="第"+(q+1)+"問："+questions[q].question;
+let choices=[questions[q].correct,...questions[q].wrong];
+choices=shuffle(choices);
+let html="";
+for(let i=0;i<4;i++){html+=`<button onclick="check('${choices[i]}')">${String.fromCharCode(65+i)}：${choices[i]}</button>`;}
+document.getElementById("buttons").innerHTML=html;
+renderLadder();}
+function check(ans){
+if(q===questions.length-1){
+if(!confirm("これが最終回答でよろしいですか？（ファイナルアンサー？）")) return;}
+if(ans===questions[q].correct){
+currentPrize=prize[q];
+document.getElementById("result").innerText="正解！";
+document.getElementById("money").innerText="現在の賞金：¥"+currentPrize.toLocaleString();
+q++;setTimeout(showQuestion,800);}
+else{document.getElementById("result").innerText="不正解...";setTimeout(finish,1000);}}
+function finish(){
+const now=new Date();const date=now.toLocaleString();
+document.body.innerHTML=`<div class="submitScreen"><h1>結果</h1><hr><p>クラス：${className}</p><p>番号：${numberName}</p><p>氏名：${studentName}</p><p>日時：${date}</p><hr><h2>最終獲得賞金：¥${currentPrize.toLocaleString()}</h2><p>スクリーンショット提出</p></div>`;}
+</script></body></html>
